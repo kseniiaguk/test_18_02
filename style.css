@@ -1,0 +1,14 @@
+
+.tooltip-line-info {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .pers-count {
+    margin-left: 5%;
+  }
+  
+  .tooltip-container {
+    min-width: 200px;
+  }

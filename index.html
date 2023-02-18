@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html style="height: 100%">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+
+</head>
+
+<body style="height: 100%; margin: 0">
+    <div id="container" style="height: 100%"></div>
+    <script src="
+    https://cdn.jsdelivr.net/npm/echarts@5.4.1/dist/echarts.min.js
+    "></script>
+    <script type="module">
+        import { data } from './data.js';
+        const monthsSet = new Set(data.map(el => el.period));
+        const monthsArr = [...monthsSet.keys()];
+        const categoriesSet = new Set(data.map(el => el.name));
+        const categoriesArr = [...categoriesSet.keys()];
+        const feature1 = 'В программе';
+        const feature2 = 'Вне программ';
+        const projectsText = 'Проекты';
+        function selectStack(category) {
+            return (category.includes(feature1) ? feature1 : feature2)
+        };
+
+        const handleLegendSelectChanged = (e) => {
+            const selectedNames = [];
+            for (const [name, value] of Object.entries(e.selected)) {
+                if (value) {
+                    selectedNames.push(name)
+                }
+            }
+            const selected1 = selectedNames.filter(el => el.includes(feature1)).length === 2;
+            const selected2 = selectedNames.filter(el => el.includes(feature2)).length === 2;
+            const selected = [selected1, selected2];
+            const series = categoriesArr.map(category => {
+                return {
+                    name: category,
+                    data: data.filter(el => el.name === category).map(el => el.value),
+                    type: 'bar',
+                    stack: selectStack(category),
+                    label: {
+                        show: true,
+                        position: 'top',
+                        formatter: function (params) {
+                            let total = data.filter(el => el.period === params.name && el.name.startsWith(params.seriesName.slice(0, 10))).reduce((acc, el) => {
+                                return acc + el.value
+                            }, 0);
+                            const isSelected = params.componentIndex < 2 ? selected[0] : selected[1];
+                            return (isSelected ? (params.componentIndex % 2 === 1 ? total : '') : params.value)
+                        }
+                    },
+                }
+            })
+            return series
+        }
+
+        const dom = document.getElementById("container");
+        const myChart = echarts.init(dom);
+
+        const option = {
+            color: [
+                '#0078D2',
+                '#56B9F2',
+                '#00724C',
+                '#22C38E'
+            ],
+            tooltip: {
+                className: "tooltip-container",
+                textStyle: {
+                    color: 'rgba(0, 32, 51, 1)',
+                    fontFamily: 'Inter',
+                    fontSize: 12
+                },
+                formatter: function (params) {
+                    const count1 = params[0].value + params[1].value;
+                    const count2 = params[2].value + params[3].value;
+                    const percentage1 = Math.floor((count1 / (count1 + count2)) * 100);
+                    const percentage2 = 100 - percentage1;
+                    return `
+        <b>${params[0].name} 2022</b>
+        <span class='tooltip-line-info'><b>${feature1}</b><b class='pers-count'>${percentage1}% | ${count1} шт.</b></span>
+        <span class='tooltip-line-info'><span>${params[0].marker} ${projectsText} ${params[0].seriesName.slice(-2)}</span><b>${params[0].value} шт.</b></span>
+        <span class='tooltip-line-info'><span>${params[1].marker} ${projectsText} ${params[1].seriesName.slice(-2)}</span><b>${params[1].value} шт.</b></span>
+        <span class='tooltip-line-info'><b>${feature2}</b><b class='pers-count'>${percentage2}% | ${count2} шт.</b></span>
+        <span class='tooltip-line-info'><span>${params[2].marker} ${projectsText} ${params[2].seriesName.slice(-2)}</span><b>${params[2].value} шт.</b></span>
+        <span class='tooltip-line-info'><span>${params[3].marker} ${projectsText} ${params[3].seriesName.slice(-2)}</span><b>${params[3].value} шт.</b></span>
+        `
+                }
+                ,
+                trigger: 'axis',
+                axisPointer: {
+                    lineStyle: {
+                        color: "rgba(0, 65, 102, 0.2)",
+                        width: 1
+                    },
+                    crossStyle: {
+                        color: "#ccc",
+                        width: 1
+                    }
+                }
+            },
+            grid: {
+                top: '20%'
+            },
+            xAxis: {
+                axisLabel: {
+                    color: 'rgba(0, 32, 51, 0.6)'
+                },
+                axisLine: {
+                    show: true,
+                    lineStyle: {
+                        color: 'rgba(0, 65, 102, 0.2)'
+                    }
+                },
+                type: 'category',
+                data: monthsArr
+            },
+            yAxis: {
+                type: 'value',
+                splitLine: {
+                    show: false
+                },
+                axisLine: {
+                    show: true,
+                    lineStyle: {
+                        color: 'rgba(0, 65, 102, 0.2)'
+                    }
+                },
+                axisLabel: {
+                    color: 'rgba(0, 32, 51, 0.6)'
+                },
+                axisTick: {
+                    show: true
+                }
+            },
+            series: categoriesArr.map(category => {
+                return {
+                    name: category,
+                    data: data.filter(el => el.name === category).map(el => el.value),
+                    type: 'bar',
+                    stack: selectStack(category),
+                    label: {
+                        fontSize: 19,
+                        fontWeight: 'bolder',
+                        show: true,
+                        position: 'top',
+                        formatter: function (params) {
+                            let total = data.filter(el => el.period === params.name && el.name.startsWith(params.seriesName.slice(0, 10))).reduce((acc, el) => {
+                                return acc + el.value
+                            }, 0);
+                            return params.componentIndex % 2 === 1 ? total : ''
+                        }
+                    },
+                }
+            }),
+            title: {
+                text: 'Проекты в программах и вне программ',
+                subtext: 'Сумма и процентное соотношение проектов, находящихся в программах и вне программ',
+                top: 0,
+                textStyle: {
+                    color: '#002033',
+                    fontFamily: 'Inter',
+                    fontSize: 16,
+                    fontWeight: 600,
+                    lineHeight: 24
+                },
+                subtextStyle: {
+                    color: 'rgba(0, 32, 51, 0.6)',
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: 400,
+                    lineHeight: 16
+                },
+                left: '5%'
+            },
+            legend: {
+                show: true,
+                z: 4,
+                bottom: 0,
+                data: categoriesArr.map(category => ({
+
+                    name: category,
+                    icon: 'circle',
+                    textStyle: {
+                        color: 'rgba(0, 32, 51, 0.6)'
+                    }
+
+                }))
+            },
+        };;
+
+        myChart.setOption({
+            ...option
+        })
+
+        myChart.on('legendselectchanged', event => {
+            myChart.setOption({
+                series: handleLegendSelectChanged(event)
+            })
+        })
+    </script>
+</body>
+
+</html>
